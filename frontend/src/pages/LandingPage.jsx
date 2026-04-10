@@ -6,14 +6,18 @@ import FeaturesGrid from '../components/FeaturesGrid';
 import IntelligenceSection from '../components/IntelligenceSection';
 import ProcessSteps from '../components/ProcessSteps';
 import Testimonials from '../components/Testimonials';
+import ReasoningTimeline from '../components/ReasoningTimeline';
 import AdvocateSection from '../components/AdvocateSection';
 import ContactSection from '../components/ContactSection';
 import Footer from '../components/Footer';
-
+import LoginModal from '../components/modals/LoginModal';
+import OnboardingModal from '../components/modals/OnboardingModal';
 import { runDemo } from '../services/api';
 import { useCitizen } from '../context/CitizenContext';
 
-const LandingPage = () => {
+const LandingPage = ({ onLoginSuccess, onGetStartedSuccess }) => {
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -38,12 +42,14 @@ const LandingPage = () => {
       setLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-indian-offwhite">
-      <Navbar />
+      <Navbar 
+        onLoginClick={() => setIsLoginOpen(true)} 
+        onGetStartedClick={() => setIsOnboardingOpen(true)} 
+      />
       <main>
-        <Hero />
+        <Hero onGetStartedClick={() => setIsOnboardingOpen(true)} />
         
         {/* LIVE DEMO ENGINE */}
         <section className="py-24 bg-gradient-to-b from-white to-indian-offwhite" id="live-demo">
@@ -79,7 +85,6 @@ const LandingPage = () => {
             
           </div>
         </section>
-
         <FeaturesGrid />
         <IntelligenceSection />
         <ProcessSteps />
@@ -88,6 +93,18 @@ const LandingPage = () => {
         <ContactSection />
       </main>
       <Footer />
+
+      {/* Modals */}
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)} 
+        onSuccess={onLoginSuccess} 
+      />
+      <OnboardingModal 
+        isOpen={isOnboardingOpen} 
+        onClose={() => setIsOnboardingOpen(false)} 
+        onSuccess={onGetStartedSuccess} 
+      />
     </div>
   );
 };
