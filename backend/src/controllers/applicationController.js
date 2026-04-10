@@ -1,4 +1,4 @@
-const supabase = require('../config/supabaseClient');
+const { supabase } = require('../config/supabaseClient');
 
 const createApplication = async (req, res) => {
   try {

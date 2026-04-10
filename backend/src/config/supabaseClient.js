@@ -1,13 +1,21 @@
-require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
+const { config } = require('./env');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let supabase;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('Missing Supabase credentials. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in the .env file.');
+try {
+  if (!config.supabaseUrl || !config.supabaseKey) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment configuration.");
+  }
+  
+  // Initialize Supabase Client
+  supabase = createClient(config.supabaseUrl, config.supabaseKey);
+  console.log("Supabase client initialized successfully.");
+  
+} catch (error) {
+  console.error("Failed to initialize Supabase client gracefully:", error.message);
+  supabase = null; // Return null intentionally so dependent routes can handle the absence instead of crashing
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-module.exports = supabase;
+// Exporting it as an object so it can be destructured using `const { supabase } = require(...)`
+module.exports = { supabase };
