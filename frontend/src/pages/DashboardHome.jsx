@@ -14,6 +14,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useCitizen } from '../context/CitizenContext';
 import { topSchemes, documentStatus, applicationSnapshot } from '../data/mockData';
 
 const BenefitSummaryCard = () => {
@@ -242,7 +243,10 @@ const ApplicationSnapshot = () => {
 };
 
 
-const DashboardHome = ({ userProfile }) => {
+const DashboardHome = () => {
+  const { citizenData } = useCitizen();
+  const userProfile = citizenData?.profile || null;
+  
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}

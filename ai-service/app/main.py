@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import uuid
 import re
 from .db.supabase_client import (
@@ -7,13 +8,17 @@ from .db.supabase_client import (
     create_application,
     store_document_extraction,
     upload_document_to_storage,
-    create_user
+    create_user,
+    fetch_user_by_id
 )
 from .services.ocr_service import run_ocr_extraction
 from .services.eligibility_engine import analyze_eligibility
 from .routes.extraction_routes import router as extraction_router
 
 app = FastAPI(title="Akashvaani AI Service")
+
+class EligibilityRequest(BaseModel):
+    user_id: str
 
 # Enable CORS 
 app.add_middleware(
@@ -26,6 +31,46 @@ app.add_middleware(
 
 # Include Routers
 app.include_router(extraction_router)
+
+# AI Service Endpoints (Called by Node.js Backend)
+@app.post("/ai/eligibility")
+async def check_eligibility(request: EligibilityRequest):
+    try:
+        # 1. Fetch user from Supabase
+        user = await fetch_user_by_id(request.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # 2. Analyze eligibility
+        eligible_schemes = await analyze_eligibility(user)
+        
+        # 3. Calculate total benefit
+        total_benefit = 0
+        for item in eligible_schemes:
+            benefit_str = str(item.get("benefit", "0"))
+            digits = re.sub(r'[^\d]', '', benefit_str)
+            if digits:
+                total_benefit += int(digits)
+        
+        return {
+            "eligible_schemes": eligible_schemes,
+            "total_benefits": total_benefit
+        }
+    except Exception as e:
+        print(f"Eligibility error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/ai/agents/reasoning/{user_id}")
+async def get_reasoning(user_id: str):
+    # Mock reasoning steps for the AI agent
+    return [
+        "Initializing Akashvaani AI Brain...",
+        f"Retrieving profile vector for user {user_id}...",
+        "Cross-referencing citizen attributes with Ministry of Finance database...",
+        "Filtering schemes based on income and occupation markers...",
+        "Verifying documentation requirements...",
+        "Finalizing eligibility confidence scores."
+    ]
 
 @app.get("/")
 async def health_check():

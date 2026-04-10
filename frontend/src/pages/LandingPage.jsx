@@ -12,7 +12,7 @@ import ContactSection from '../components/ContactSection';
 import Footer from '../components/Footer';
 import LoginModal from '../components/modals/LoginModal';
 import OnboardingModal from '../components/modals/OnboardingModal';
-import { runDemo } from '../services/api';
+import { runDemo, getUserByEmail } from '../services/api';
 import { useCitizen } from '../context/CitizenContext';
 
 const LandingPage = ({ onLoginSuccess, onGetStartedSuccess, onDemoLogin }) => {
@@ -28,16 +28,17 @@ const LandingPage = ({ onLoginSuccess, onGetStartedSuccess, onDemoLogin }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await runDemo();
+      // Fetch specifically user@gmail.com as requested
+      const user = await getUserByEmail('user@gmail.com');
       loadDemoCitizen(
-         response.citizen_profile,
-         response.eligible_schemes,
-         response.total_benefit_amount || response.total_benefits
+         user,
+         [], // Eligible schemes will be calculated on navigation
+         0
       );
-      navigate('/schemes');
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
-      setError('Failed to run demo. Ensure backend and AI modules are fully executing.');
+      setError('Demo User "user@gmail.com" not found in Supabase.');
     } finally {
       setLoading(false);
     }

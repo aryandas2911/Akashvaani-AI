@@ -20,5 +20,6 @@ export const createUser = (userData) => handleRequest(() => api.post('/users', u
 export const createApplication = (applicationData) => handleRequest(() => api.post('/applications', applicationData));
 export const runDemo = () => handleRequest(() => api.get('/demo-citizen'));
 export const getReasoning = (userId) => handleRequest(() => api.get(`/agents/reasoning/${userId}`));
+export const getUserByEmail = (email) => handleRequest(() => api.get(`/users/email/${email}`));
 
 export default api;

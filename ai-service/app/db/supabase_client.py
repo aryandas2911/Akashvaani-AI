@@ -32,6 +32,12 @@ async def create_user(user_data: dict):
     response = await client.table("users").insert(user_data).execute()
     return response.data
 
+async def fetch_user_by_id(user_id: str):
+    """Fetches a user by their UUID."""
+    client = await get_supabase()
+    response = await client.table("users").select("*").eq("id", user_id).execute()
+    return response.data[0] if response.data else None
+
 
 async def create_application(application_data: dict):
     """Creates a new draft application."""
