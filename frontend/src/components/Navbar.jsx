@@ -18,7 +18,7 @@ const Navbar = ({ onLoginClick, onGetStartedClick, onDemoLogin }) => {
   }, []);
 
   const menuItems = [
-    { name: 'Home', href: '/' },
+    { name: 'Home', href: '/dashboard' },
     { name: 'About', href: '/about' },
     { name: 'Schemes', href: '/schemes' },
   ];
@@ -89,12 +89,12 @@ const Navbar = ({ onLoginClick, onGetStartedClick, onDemoLogin }) => {
             </AnimatePresence>
           </div>
 
-          <button 
-            onClick={onDemoLogin}
+          <Link 
+            to="/dashboard"
             className="hidden xl:block text-sm font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 px-4 py-2 rounded-full transition-colors"
           >
             Try Demo User
-          </button>
+          </Link>
           
           <button 
             onClick={onLoginClick}
