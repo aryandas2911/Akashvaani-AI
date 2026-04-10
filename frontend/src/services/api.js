@@ -4,28 +4,21 @@ const api = axios.create({
   baseURL: 'http://localhost:5000/api',
 });
 
-// Fetch all schemes
-export const getSchemes = async () => {
-  const response = await api.get('/schemes');
-  return response.data;
+// Generic error handler wrapper
+const handleRequest = async (request) => {
+  try {
+    const response = await request();
+    return response.data;
+  } catch (error) {
+    console.error('API Error:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.error || error.message || 'API Request failed');
+  }
 };
 
-// Create a new citizen manually
-export const createUser = async (userData) => {
-  const response = await api.post('/users', userData);
-  return response.data;
-};
-
-// Create a draft application
-export const createApplication = async (applicationData) => {
-  const response = await api.post('/applications', applicationData);
-  return response.data;
-};
-
-// Start the Demo pipeline
-export const runDemo = async () => {
-  const response = await api.get('/demo-citizen');
-  return response.data;
-};
+export const getSchemes = () => handleRequest(() => api.get('/schemes'));
+export const createUser = (userData) => handleRequest(() => api.post('/users', userData));
+export const createApplication = (applicationData) => handleRequest(() => api.post('/applications', applicationData));
+export const runDemo = () => handleRequest(() => api.get('/demo-citizen'));
+export const getReasoning = (userId) => handleRequest(() => api.get(`/agents/reasoning/${userId}`));
 
 export default api;

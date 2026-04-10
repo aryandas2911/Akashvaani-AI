@@ -20,7 +20,7 @@ const Navbar = () => {
   const menuItems = [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/#about' },
-    { name: 'Government Schemes', href: '/schemes' },
+    { name: 'Schemes', href: '/schemes' },
   ];
 
   return (

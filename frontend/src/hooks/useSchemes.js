@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getSchemes } from '../services/api';
 
 export const useSchemes = () => {
@@ -6,20 +6,22 @@ export const useSchemes = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchSchemes = async () => {
-      try {
-        const result = await getSchemes();
-        setSchemes(result.schemes || []);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch schemes');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSchemes();
+  const fetchSchemes = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getSchemes();
+      setSchemes(result.schemes || result || []);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch schemes');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { schemes, loading, error };
+  useEffect(() => {
+    fetchSchemes();
+  }, [fetchSchemes]);
+
+  return { schemes, loading, error, refetch: fetchSchemes };
 };
