@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Globe } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import logo from '../assets/logo.png';
 
 const Navbar = () => {
@@ -17,9 +18,9 @@ const Navbar = () => {
   }, []);
 
   const menuItems = [
-    { name: 'Home', href: '#' },
-    { name: 'About', href: '#about' },
-    { name: 'Government Schemes', href: '#schemes' },
+    { name: 'Home', href: '/' },
+    { name: 'About', href: '/#about' },
+    { name: 'Government Schemes', href: '/schemes' },
   ];
 
   return (
@@ -41,14 +42,14 @@ const Navbar = () => {
         {/* Menu */}
         <div className="hidden lg:flex items-center gap-10">
           {menuItems.map((item) => (
-            <a
+            <Link
               key={item.name}
-              href={item.href}
+              to={item.href}
               className="text-md font-semibold text-indian-navy/70 hover:text-indian-saffron transition-colors relative group"
             >
               {item.name}
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indian-saffron transition-all group-hover:w-full"></span>
-            </a>
+            </Link>
           ))}
         </div>
 
