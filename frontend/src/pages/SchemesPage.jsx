@@ -6,53 +6,41 @@ import SchemeCard from '../components/SchemeCard';
 import SchemeFilters from '../components/SchemeFilters';
 import { useSchemes } from '../hooks/useSchemes';
 import { useCitizen } from '../context/CitizenContext';
-import { analyzeEligibility } from '../services/aiApi';
+import { getUserById } from '../services/api';
 import { Loader2 } from 'lucide-react';
 
 const SchemesPage = () => {
   const { pathname } = useLocation();
   const isDashboard = pathname.startsWith('/dashboard');
+  const { citizenData, updateCitizen } = useCitizen();
+  const currentProfile = citizenData?.profile || null;
   const { schemes, loading: schemesLoading, error } = useSchemes();
   const [filteredSchemes, setFilteredSchemes] = useState([]);
-  const [isAiMatching, setIsAiMatching] = useState(false);
-  
-  const { citizenData, clearCitizen, setCitizen } = useCitizen();
-  const currentProfile = citizenData?.profile || null;
+  const [freshProfile, setFreshProfile] = useState(citizenData?.profile || null);
   const [filterKey, setFilterKey] = useState(0);
 
+  // On mount: refetch user from DB to get latest income, gender, doc flags
+  // SchemeFilters reads freshProfile and auto-applies filters on load
   useEffect(() => {
-    const applyAiFilter = async () => {
-      if (currentProfile && schemes.length > 0) {
-        setIsAiMatching(true);
+    const refetchUser = async () => {
+      if (currentProfile?.id && !citizenData?.isDemo) {
         try {
-          // If we already have matches in context and they are non-demo, use them first
-          // But for consistency, we'll re-run matching to ensure it's fresh
-          const results = await analyzeEligibility(currentProfile);
-          
-          // Map backend results to full scheme objects
-          const matched = results.map(r => {
-            const fullScheme = schemes.find(s => s.name === r.scheme || s.title === r.scheme);
-            return {
-              ...fullScheme,
-              score: Math.round(r.score * 100),
-              benefit: r.benefit
-            };
-          }).filter(s => s.id); // Ensure we found the full scheme object
-
-          setFilteredSchemes(matched);
-        } catch (err) {
-          console.error("AI Filtering failed", err);
-          setFilteredSchemes(schemes);
-        } finally {
-          setIsAiMatching(false);
+          const latest = await getUserById(currentProfile.id);
+          if (latest) {
+            updateCitizen(latest);
+            setFreshProfile(latest);
+          } else {
+            setFreshProfile(currentProfile);
+          }
+        } catch {
+          setFreshProfile(currentProfile);
         }
       } else {
-        setFilteredSchemes(schemes);
+        setFreshProfile(currentProfile);
       }
     };
-
-    applyAiFilter();
-  }, [schemes, currentProfile]);
+    refetchUser();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalBenefitAmount = filteredSchemes.reduce((acc, curr) => {
       const numStr = String(curr.benefit).replace(/[^0-9]/g, '');
@@ -90,7 +78,7 @@ const SchemesPage = () => {
                       Akashvaani AI Engine
                     </p>
                     <h2 className="text-4xl md:text-5xl font-black tracking-tight border-b border-white/10 pb-4 mb-4 pt-2">
-                      {isAiMatching ? 'Analyzing Eligibility...' : `${filteredSchemes.length} schemes you qualify for`}
+                      {`${filteredSchemes.length} schemes you qualify for`}
                     </h2>
                     <div className="flex gap-4">
                       <p className="text-white/70 bg-white/5 px-4 py-2 rounded-xl border border-white/10 text-sm"><span className="text-white font-bold block mb-1">Income</span>₹{currentProfile.income?.toLocaleString('en-IN')}</p>
@@ -101,7 +89,7 @@ const SchemesPage = () => {
                   <div className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-[32px] text-center min-w-[320px] shadow-2xl">
                     <p className="text-white/80 font-bold uppercase tracking-widest text-xs mb-2">Total benefits available</p>
                     <p className="text-5xl md:text-6xl font-black text-indian-green drop-shadow-md">
-                      {isAiMatching ? '...' : `₹${totalBenefitAmount.toLocaleString('en-IN')}`}
+                      {`₹${totalBenefitAmount.toLocaleString('en-IN')}`}
                     </p>
                     <p className="text-sm font-bold text-indian-green/80 mt-2 tracking-wider uppercase">matched for you</p>
                   </div>
@@ -123,16 +111,16 @@ const SchemesPage = () => {
           )}
 
           <div className="space-y-8">
-            <SchemeFilters key={filterKey} schemes={schemes} setFilteredSchemes={setFilteredSchemes} userProfile={currentProfile} />
+            <SchemeFilters key={filterKey} schemes={schemes} setFilteredSchemes={setFilteredSchemes} userProfile={freshProfile} />
 
-            {(schemesLoading || isAiMatching) && (
+            {schemesLoading && (
               <div className="flex flex-col justify-center items-center py-32 space-y-6">
                 <div className="relative">
                    <div className="w-16 h-16 border-4 border-slate-100 rounded-full"></div>
                    <div className="w-16 h-16 border-4 border-indian-saffron rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
                    <Loader2 className="w-8 h-8 text-indian-saffron absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
                 </div>
-                <p className="text-indian-navy/50 font-bold uppercase tracking-widest text-sm">AI Matching in Progress...</p>
+                <p className="text-indian-navy/50 font-bold uppercase tracking-widest text-sm">Loading Schemes...</p>
               </div>
             )}
 
@@ -143,14 +131,14 @@ const SchemesPage = () => {
               </div>
             )}
 
-            {!schemesLoading && !isAiMatching && !error && filteredSchemes.length === 0 && (
+            {!schemesLoading && !error && filteredSchemes.length === 0 && (
               <div className="text-center py-32 bg-white rounded-[32px] border border-black/5 shadow-sm mx-2 animate-in fade-in duration-500">
                 <h3 className="text-3xl font-black text-indian-navy mb-3 tracking-tight">No matching schemes</h3>
                 <p className="text-indian-navy/60 text-lg font-medium">Reset your filters or adjust your profile details.</p>
               </div>
             )}
 
-            {!schemesLoading && !isAiMatching && !error && filteredSchemes.length > 0 && (
+            {!schemesLoading && !error && filteredSchemes.length > 0 && (
               <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr mt-8`}>
                 {filteredSchemes.map((scheme, idx) => (
                   <div key={scheme.id || idx} className="animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both w-full" style={{ animationDelay: `${(idx % 6) * 75}ms` }}>

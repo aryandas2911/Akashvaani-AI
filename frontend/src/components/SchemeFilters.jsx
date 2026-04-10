@@ -19,10 +19,8 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile }) => {
   const [selectedDocs, setSelectedDocs] = useState([]);
   const [genderFilter, setGenderFilter] = useState('');
   
-  // Scrape distinct documents natively across array to render dynamic selects
-  const allDocs = Array.from(new Set(
-    schemes.flatMap(s => s.documents_required || [])
-  )).filter(Boolean).slice(0, 15);
+  // Use canonical document list (matches DB boolean columns exactly)
+  const allDocs = Object.keys(docTypeToField);
 
   useEffect(() => {
     if (userProfile) {
@@ -47,51 +45,93 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile }) => {
     }
   }, [userProfile]);
 
+  // Helper: check if userGender matches a scheme's gender rule (string OR array)
+  const genderMatches = (ruleGender, userGender) => {
+    if (!ruleGender) return true; // no restriction
+    const g = userGender.toLowerCase();
+    // normalize db value: non_binary → non-binary for comparison
+    const normalize = v => v.toLowerCase().replace('_', '-');
+    const gNorm = normalize(g);
+    if (Array.isArray(ruleGender)) {
+      return ruleGender.some(r => normalize(r) === gNorm);
+    }
+    const rNorm = normalize(String(ruleGender));
+    return rNorm === 'all' || rNorm === gNorm;
+  };
+
   useEffect(() => {
     let result = [...schemes];
 
-    // 1. Income parsing & Eligibility map
-    if (userProfile && userProfile.income) {
-      const uIncome = Number(userProfile.income);
+    // 1. Income filter (auto from profile, fallback to dropdown selection)
+    const effectiveIncome = userProfile?.income ? Number(userProfile.income) : null;
+    if (effectiveIncome) {
       result = result.filter(scheme => {
         const rules = scheme.eligibility_rules;
         if (!rules || !rules.income_max) return true;
-        return uIncome <= rules.income_max;
+        return effectiveIncome <= rules.income_max;
       });
     } else if (incomeRange) {
       const maxIncomeNum = parseInt(incomeRange);
       result = result.filter(scheme => {
-        if (!scheme.eligibility_rules?.income_max) return true; 
+        if (!scheme.eligibility_rules?.income_max) return true;
         return scheme.eligibility_rules.income_max >= maxIncomeNum;
       });
     }
 
-    // 2. Gender filtering
+    // 2. Gender filter (handles string OR array in DB)
     const effectiveGender = userProfile?.gender || genderFilter;
     if (effectiveGender) {
       result = result.filter(scheme => {
         const rules = scheme.eligibility_rules;
-        if (!rules || !rules.gender || rules.gender.toLowerCase() === 'all') return true;
-        return rules.gender.toLowerCase() === effectiveGender.toLowerCase();
+        if (!rules || !rules.gender) return true;
+        return genderMatches(rules.gender, effectiveGender);
       });
     }
 
-    // 3. Document checking
+    // 3. Age filter using min_age (new schema key)
+    if (userProfile?.age) {
+      const age = Number(userProfile.age);
+      result = result.filter(scheme => {
+        const rules = scheme.eligibility_rules;
+        if (!rules) return true;
+        if (rules.min_age && age < rules.min_age) return false;
+        if (rules.max_age && age > rules.max_age) return false;
+        if (rules.founder_age_max && age > rules.founder_age_max) return false;
+        return true;
+      });
+    }
+
+    // 4. Occupation-based filtering
+    if (userProfile?.occupation) {
+      const occ = userProfile.occupation.toLowerCase();
+      const isStudent = occ === 'student';
+      const isFarmer = occ === 'farmer';
+      const isFisherman = occ === 'fisherman';
+      const isVendor = occ === 'vendor';
+
+      result = result.filter(scheme => {
+        const rules = scheme.eligibility_rules;
+        if (!rules) return true;
+        // student rule
+        if (rules.student !== undefined && rules.student !== isStudent) return false;
+        // occupation rule
+        if (rules.occupation && rules.occupation.toLowerCase() !== occ) return false;
+        return true;
+      });
+    }
+
+    // 5. Document checking (fuzzy match: "Aadhaar Card" matches "Aadhaar" in DB)
     if (selectedDocs.length > 0) {
       result = result.filter(scheme => {
         const reqDocs = scheme.documents_required || [];
         if (reqDocs.length === 0) return true;
-        return reqDocs.some(doc => selectedDocs.includes(doc));
-      });
-    }
-
-    // 4. Student status logic (if profile present)
-    if (userProfile) {
-      const isStudent = userProfile.occupation?.toLowerCase() === 'student' || userProfile.student === true;
-      result = result.filter(scheme => {
-        const rules = scheme.eligibility_rules;
-        if (!rules || rules.student === undefined) return true;
-        return rules.student === isStudent;
+        return reqDocs.some(reqDoc =>
+          selectedDocs.some(sel => {
+            const r = reqDoc.toLowerCase();
+            const s = sel.toLowerCase();
+            return r.includes(s.split(' ')[0]) || s.includes(r.split(' ')[0]);
+          })
+        );
       });
     }
 

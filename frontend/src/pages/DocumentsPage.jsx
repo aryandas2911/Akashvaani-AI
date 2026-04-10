@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, CheckCircle2, AlertCircle, File, Loader2, ExternalLink } from 'lucide-react';
 import { useCitizen } from '../context/CitizenContext';
 import { extractProfile, fetchDocumentUrl } from '../services/aiApi';
+import { updateUser } from '../services/api';
 
 const DocumentCard = ({ doc }) => {
   const { addDocument, citizenData, updateCitizen } = useCitizen();
@@ -42,19 +43,35 @@ const DocumentCard = ({ doc }) => {
 
     setIsUploading(true);
     try {
-      // 1. OCR Extraction
+      // 1. OCR Extraction + DB boolean flag update (backend handles via doc_type param)
       const extractedData = await extractProfile(file, citizenData?.profile?.id, doc.name);
       
-      // 2. Add to vault
+      // 2. Add to local vault context
       addDocument({
         name: doc.name,
         status: 'verified',
         type: doc.name,
         date: new Date().toLocaleDateString(),
-        url: extractedData.file_url || URL.createObjectURL(file) // Use permanent URL if available
+        url: extractedData.file_url || URL.createObjectURL(file)
       });
 
-      // 3. Update global profile if new data found
+      // 3. Map document name to the DB boolean column
+      const DOC_FIELD_MAP = {
+        'Aadhaar Card': 'aadhaar_card',
+        'PAN Card': 'pan_card',
+        'Passport': 'passport',
+        'Voter ID': 'voter_id',
+        'Driving License': 'driving_license',
+        'Ration Card': 'ration_card',
+        'Birth Certificate': 'birth_certificate',
+        'Death Certificate': 'death_certificate',
+        'Marriage Certificate': 'marriage_certificate',
+        'Caste Status Certificate': 'caste_status_certificate',
+        'Income Certificate': 'income_certificate'
+      };
+      const flagField = DOC_FIELD_MAP[doc.name];
+
+      // 4. Merge the doc flag with any newly extracted profile fields
       const profileUpdates = {
         name: extractedData.name !== 'Unknown' ? extractedData.name : undefined,
         age: extractedData.age,
@@ -64,16 +81,26 @@ const DocumentCard = ({ doc }) => {
         occupation: extractedData.occupation,
         income: extractedData.annual_income,
         education: extractedData.education,
-        email: extractedData.email
+        email: extractedData.email,
+        // Always mark this doc as verified in context
+        ...(flagField ? { [flagField]: true } : {})
       };
       
-      // Filter out undefined/null
       const cleanUpdates = Object.fromEntries(
         Object.entries(profileUpdates).filter(([_, v]) => v != null)
       );
       
       if (Object.keys(cleanUpdates).length > 0) {
         updateCitizen(cleanUpdates);
+      }
+
+      // 5. Explicitly write the doc boolean flag to DB as a guaranteed save
+      if (flagField && citizenData?.profile?.id) {
+        try {
+          await updateUser(citizenData.profile.id, { [flagField]: true });
+        } catch (dbErr) {
+          console.error('DB flag update failed:', dbErr);
+        }
       }
 
     } catch (err) {

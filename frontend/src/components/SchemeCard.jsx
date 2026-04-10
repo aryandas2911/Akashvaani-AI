@@ -95,10 +95,9 @@ const SchemeCard = ({ scheme, citizenProfile }) => {
         </div>
       </div>
       
-      {/* Action Button */}
       <div className="mt-auto pt-5 border-t border-black/5">
         <button className="w-full py-3.5 text-center bg-indian-saffron/10 hover:bg-indian-saffron text-indian-saffron hover:text-white font-black rounded-xl transition-all duration-300 uppercase tracking-wider text-sm shadow-sm group-hover:shadow-md">
-          Check Eligibility
+          Apply
         </button>
       </div>
     </div>

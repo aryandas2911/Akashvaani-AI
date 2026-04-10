@@ -3,10 +3,17 @@ from app.db.supabase_client import fetch_schemes
 
 logger = logging.getLogger(__name__)
 
+DOC_BOOLEAN_FIELDS = [
+    'aadhaar_card', 'pan_card', 'passport', 'voter_id', 'driving_license',
+    'ration_card', 'birth_certificate', 'death_certificate',
+    'marriage_certificate', 'caste_status_certificate', 'income_certificate'
+]
+
 async def analyze_eligibility(citizen_profile: dict) -> list:
     """
-    Fetches schemes from Supabase, compares eligibility_rules with citizen profile,
-    and returns a list of eligible schemes with scores.
+    Fetches schemes from Supabase and scores each against the citizen profile.
+    Hard filters on: income, gender, student status, age.
+    Bonus score for: number of verified documents.
     """
     try:
         schemes = await fetch_schemes()
@@ -14,18 +21,28 @@ async def analyze_eligibility(citizen_profile: dict) -> list:
         logger.error(f"Failed to fetch schemes: {e}")
         return []
 
+    # Count verified documents from profile flags
+    doc_count = sum(1 for field in DOC_BOOLEAN_FIELDS if citizen_profile.get(field) is True)
+    doc_bonus = min(doc_count / len(DOC_BOOLEAN_FIELDS), 1.0) * 0.15  # up to +0.15 bonus
+
     eligible_schemes = []
 
     for scheme in schemes:
         rules = scheme.get("eligibility_rules", {})
         if not isinstance(rules, dict):
+            # No rules = universally eligible
+            eligible_schemes.append({
+                "scheme": scheme.get("name", scheme.get("title", "Unknown Scheme")),
+                "score": round(0.70 + doc_bonus, 2),
+                "benefit": scheme.get("benefit", "Varies")
+            })
             continue
 
         score = 0.0
         total_rules = 0
         is_eligible = True
 
-        # Rule 1: check income
+        # Rule 1: Income ceiling (hard filter)
         if "income_max" in rules:
             total_rules += 1
             user_income = citizen_profile.get("income", float('inf'))
@@ -33,42 +50,53 @@ async def analyze_eligibility(citizen_profile: dict) -> list:
                 score += 1.0
             else:
                 is_eligible = False
-        
-        # Rule 2: check student status
-        if "student" in rules:
+
+        # Rule 2: Gender (hard filter if specified)
+        if "gender" in rules and rules["gender"] and rules["gender"].lower() != "all":
             total_rules += 1
-            user_student = citizen_profile.get("student", None)
-            if user_student is not None and user_student == rules["student"]:
+            user_gender = (citizen_profile.get("gender") or "").lower()
+            required_gender = rules["gender"].lower()
+            if user_gender == required_gender:
                 score += 1.0
-            elif user_student != rules["student"]:
+            else:
                 is_eligible = False
 
-        # Rule 3: minimum age
+        # Rule 3: Student status (hard filter)
+        if "student" in rules:
+            total_rules += 1
+            occ = (citizen_profile.get("occupation") or "").lower()
+            user_is_student = occ == "student" or citizen_profile.get("student") is True
+            if user_is_student == rules["student"]:
+                score += 1.0
+            else:
+                is_eligible = False
+
+        # Rule 4: Minimum age
         if "age_min" in rules:
             total_rules += 1
-            user_age = citizen_profile.get("age", 0)
+            user_age = citizen_profile.get("age", 0) or 0
             if user_age >= rules["age_min"]:
                 score += 1.0
             else:
                 is_eligible = False
 
-        # If eligible based on evaluated rules, calculate a matching score
-        if is_eligible:
-            # Evaluate final float score. If total_rules is 0, give an average 0.70 meaning unsure.
-            final_score = (score / total_rules) if total_rules > 0 else 0.70
-            
-            # To inject a realistic probability-like output (as AI models often yield like 0.92)
-            if final_score == 1.0:
-                final_score = 0.92 + (len(rules) * 0.01) # e.g. 0.93, 0.94
-                final_score = min(final_score, 0.99)
+        if not is_eligible:
+            continue
 
-            eligible_schemes.append({
-                "scheme": scheme.get("name", scheme.get("title", "Unknown Scheme")),
-                "score": round(final_score, 2),
-                "benefit": scheme.get("benefit", "Varies or unspecified")
-            })
+        # Base eligibility score + document completeness bonus
+        base_score = (score / total_rules) if total_rules > 0 else 0.70
+        final_score = base_score + doc_bonus
 
-    # Sort descending by highest score
+        # Cap and add small rule-density boost for perfect matches
+        if base_score == 1.0:
+            final_score += len(rules) * 0.01
+        final_score = round(min(final_score, 0.99), 2)
+
+        eligible_schemes.append({
+            "scheme": scheme.get("name", scheme.get("title", "Unknown Scheme")),
+            "score": final_score,
+            "benefit": scheme.get("benefit", "Varies")
+        })
+
     eligible_schemes.sort(key=lambda x: x["score"], reverse=True)
-    
     return eligible_schemes
