@@ -11,7 +11,7 @@ const ReasoningTimeline = ({ userId = 'demo' }) => {
         if (!response.ok) throw new Error('Network error');
         const data = await response.json();
         setSteps(data);
-      } catch (err) {
+      } catch (_err) {
         // Fallback for hackathon demo if python backend isn't up
         setSteps([
           "Parsing citizen profile",
