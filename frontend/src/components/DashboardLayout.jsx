@@ -63,8 +63,6 @@ const DashboardLayout = ({ userProfile, onLogout }) => {
     { to: "/dashboard/applications", icon: FileText, label: "Applications" },
     { to: "/dashboard/documents", icon: FolderOpen, label: "Documents" },
     { to: "/dashboard/voice-assistant", icon: Mic, label: "Voice Assistant" },
-    { to: "https://www.myscheme.gov.in/", icon: Globe, label: "Government Schemes", external: true },
-    { to: "/dashboard/settings", icon: Settings, label: "Settings" }
   ];
 
   return (
@@ -153,14 +151,22 @@ const DashboardLayout = ({ userProfile, onLogout }) => {
                       <p className="text-xs text-slate-500 truncate">{userProfile?.isDemo ? 'Demo Mode' : 'Citizen Account'}</p>
                     </div>
                     
-                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indian-navy flex items-center gap-2 transition-colors">
+                    <Link 
+                      to="/dashboard/profile"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indian-navy flex items-center gap-2 transition-colors"
+                    >
                       <User className="w-4 h-4 text-slate-400" />
                       Profile
-                    </button>
-                    <button className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indian-navy flex items-center gap-2 transition-colors">
+                    </Link>
+                    <Link 
+                      to="/dashboard/settings"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indian-navy flex items-center gap-2 transition-colors"
+                    >
                       <Settings className="w-4 h-4 text-slate-400" />
                       Settings
-                    </button>
+                    </Link>
                     <div className="my-1 border-t border-slate-100"></div>
                     <button 
                       onClick={onLogout}

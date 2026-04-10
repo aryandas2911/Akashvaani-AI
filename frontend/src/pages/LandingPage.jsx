@@ -48,7 +48,7 @@ const LandingPage = ({ onLoginSuccess, onGetStartedSuccess, onDemoLogin }) => {
       <Navbar 
         onLoginClick={() => setIsLoginOpen(true)} 
         onGetStartedClick={() => setIsOnboardingOpen(true)} 
-        onDemoLogin={onDemoLogin}
+        onDemoLogin={handleRunDemo}
       />
       <main>
         <Hero onGetStartedClick={() => setIsOnboardingOpen(true)} />
