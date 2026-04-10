@@ -59,7 +59,7 @@ const MarqueeColumn = ({ items, reverse = false, duration = 40, isHovered }) => 
   );
 };
 
-const Hero = () => {
+const Hero = ({ onGetStartedClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const column1 = [
@@ -121,7 +121,10 @@ const Hero = () => {
             transition={{ delay: 0.3 }}
             className="flex flex-wrap gap-4"
           >
-            <button className="btn-primary !py-4 !px-8 text-base shadow-xl shadow-indian-saffron/20 group">
+            <button 
+              onClick={onGetStartedClick}
+              className="btn-primary !py-4 !px-8 text-base shadow-xl shadow-indian-saffron/20 group"
+            >
               Get Started Now
               <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
             </button>

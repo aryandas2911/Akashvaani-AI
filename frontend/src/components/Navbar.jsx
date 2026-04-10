@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Globe } from 'lucide-react';
 import logo from '../assets/logo.png';
 
-const Navbar = () => {
+const Navbar = ({ onLoginClick, onGetStartedClick }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [lang, setLang] = useState('English');
   const [showLang, setShowLang] = useState(false);
@@ -88,11 +88,17 @@ const Navbar = () => {
             </AnimatePresence>
           </div>
 
-          <button className="hidden sm:block text-sm font-bold text-indian-navy/60 hover:text-indian-navy transition-colors">
+          <button 
+            onClick={onLoginClick}
+            className="hidden sm:block text-sm font-bold text-indian-navy/60 hover:text-indian-navy transition-colors"
+          >
             Login
           </button>
           
-          <button className="btn-primary !py-2.5 !px-6 text-sm flex items-center gap-2 group">
+          <button 
+            onClick={onGetStartedClick}
+            className="btn-primary !py-2.5 !px-6 text-sm flex items-center gap-2 group"
+          >
             Get Started
             <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center transition-transform group-hover:translate-x-1">
               <ChevronDown className="-rotate-90 w-3 h-3" />
