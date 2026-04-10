@@ -3,4 +3,9 @@ uvicorn
 supabase
 python-dotenv
 python-multipart
+langchain
+langchain-openai
+pytesseract
+pdfplumber
+Pillow
 

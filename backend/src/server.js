@@ -11,10 +11,8 @@ const demoRoutes = require('./routes/demoRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
-// Middleware to parse JSON bodies and enable CORS for Vite Frontend
-app.use(cors({
-  origin: 'http://localhost:5173'
-}));
+// Middleware to parse JSON bodies and enable CORS
+app.use(cors()); 
 app.use(express.json());
 
 // Register API routes

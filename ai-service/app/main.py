@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import re
 from .db.supabase_client import (
@@ -10,8 +11,21 @@ from .db.supabase_client import (
 )
 from .services.ocr_service import run_ocr_extraction
 from .services.eligibility_engine import analyze_eligibility
+from .routes.extraction_routes import router as extraction_router
 
 app = FastAPI(title="Akashvaani AI Service")
+
+# Enable CORS 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include Routers
+app.include_router(extraction_router)
 
 @app.get("/")
 async def health_check():

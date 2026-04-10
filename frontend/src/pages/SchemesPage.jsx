@@ -59,8 +59,8 @@ const SchemesPage = () => {
         </div>
       )}
 
-      <main className="flex-1 py-16 px-4 md:px-8 mt-16">
-        <div className="max-w-[1440px] mx-auto space-y-8">
+      <main className="flex-1 py-16 px-4 md:px-12 mt-16">
+        <div className="w-full mx-auto space-y-8">
           
           {/* Reactive UI Analytics Block */}
           {currentProfile ? (
