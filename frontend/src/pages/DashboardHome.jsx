@@ -36,7 +36,7 @@ const BenefitSummaryCard = () => {
             Available across <span className="font-bold text-white bg-white/20 px-2 py-0.5 rounded-md">3 schemes</span> matched
           </p>
           <p className="text-sm text-blue-200 mt-4 max-w-sm">
-            "These are benefits you are most likely eligible for right now based on your profile."
+            These are benefits you are most likely eligible for right now based on your profile.
           </p>
         </div>
         
@@ -87,7 +87,7 @@ const TopSchemesPreview = () => {
           <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             Top Scheme Matches
           </h3>
-          <p className="text-sm text-slate-500 mt-1">"Top matches based on your current profile."</p>
+          <p className="text-sm text-slate-500 mt-1">Top matches based on your current profile.</p>
         </div>
         <button 
           onClick={() => navigate('/dashboard/schemes')}
@@ -142,7 +142,7 @@ const AgentActivity = () => {
            <Layers className="w-5 h-5 text-blue-400" />
            Agent Activity
          </h3>
-         <p className="text-sm text-slate-400 mt-1">"Your AI assistant is working in the background to optimize your benefits."</p>
+         <p className="text-sm text-slate-400 mt-1">Your AI assistant is working in the background to optimize your benefits.</p>
        </div>
 
        <div className="space-y-6 relative z-10 flex-1">
@@ -188,7 +188,7 @@ const DocumentSnapshot = () => {
          <h3 className="text-lg font-bold text-slate-800">Document Status</h3>
          <button onClick={() => navigate('/dashboard/documents')} className="text-sm text-blue-600 font-semibold hover:underline">Manage</button>
        </div>
-       <p className="text-xs text-slate-500 mb-4 tracking-wide">"Complete your profile to unlock more schemes."</p>
+       <p className="text-xs text-slate-500 mb-4 tracking-wide">Complete your profile to unlock more schemes.</p>
        
        <div className="space-y-3">
          {documentStatus.slice(0,3).map(doc => (
@@ -220,7 +220,7 @@ const ApplicationSnapshot = () => {
           <h3 className="text-lg font-bold text-slate-800">Applications</h3>
           <button onClick={() => navigate('/dashboard/applications')} className="text-sm text-blue-600 font-semibold hover:underline">View All</button>
         </div>
-        <p className="text-xs text-slate-500 mb-4 tracking-wide">"Track your applications and stay updated on their progress."</p>
+        <p className="text-xs text-slate-500 mb-4 tracking-wide">Track your applications and stay updated on their progress.</p>
         
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">

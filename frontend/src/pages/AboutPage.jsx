@@ -1,13 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Shield, Cpu, Activity, Target } from 'lucide-react';
 import logo from '../assets/logo.png';
+import LoginModal from '../components/modals/LoginModal';
+import OnboardingModal from '../components/modals/OnboardingModal';
 
 const AboutPage = () => {
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-indian-offwhite flex flex-col font-outfit">
-      <Navbar />
+      <Navbar 
+        onLoginClick={() => setIsLoginOpen(true)} 
+        onGetStartedClick={() => setIsOnboardingOpen(true)} 
+      />
 
       <main className="flex-1 py-16 px-6 md:px-12 mt-16 max-w-7xl mx-auto w-full">
         {/* Header Section */}
@@ -83,6 +93,18 @@ const AboutPage = () => {
       </main>
 
       <Footer />
+
+      {/* Modals */}
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)} 
+        onSuccess={() => { setIsLoginOpen(false); navigate('/dashboard'); }} 
+      />
+      <OnboardingModal 
+        isOpen={isOnboardingOpen} 
+        onClose={() => setIsOnboardingOpen(false)} 
+        onSuccess={() => { setIsOnboardingOpen(false); navigate('/dashboard'); }} 
+      />
     </div>
   );
 };

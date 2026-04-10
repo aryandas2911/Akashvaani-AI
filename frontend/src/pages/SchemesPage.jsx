@@ -19,7 +19,7 @@ const evaluateEligibilityRaw = (scheme, profile) => {
   return matches;
 };
 
-const SchemesPage = () => {
+const SchemesPage = ({ isDashboard = false }) => {
   const { schemes, loading, error } = useSchemes();
   const [filteredSchemes, setFilteredSchemes] = useState([]);
   
@@ -43,8 +43,8 @@ const SchemesPage = () => {
   }, 0);
 
   return (
-    <div className="min-h-screen bg-indian-offwhite flex flex-col font-outfit relative">
-      <Navbar />
+    <div className={isDashboard ? "flex flex-col font-outfit w-full" : "min-h-screen bg-indian-offwhite flex flex-col font-outfit relative"}>
+      {!isDashboard && <Navbar />}
 
       {/* Demo Notification Wrapper */}
       {citizenData && (
@@ -59,7 +59,7 @@ const SchemesPage = () => {
         </div>
       )}
 
-      <main className="flex-1 py-16 px-4 md:px-12 mt-16">
+      <main className={`flex-1 w-full mx-auto ${isDashboard ? 'pb-10 pt-2' : 'py-16 px-4 md:px-12 mt-16'}`}>
         <div className="w-full mx-auto space-y-8">
           
           {/* Reactive UI Analytics Block */}
@@ -154,7 +154,7 @@ const SchemesPage = () => {
 
         </div>
       </main>
-      <Footer />
+      {!isDashboard && <Footer />}
     </div>
   );
 };

@@ -53,7 +53,7 @@ const DocumentsPage = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-gradient-to-r from-indian-navy to-blue-900 rounded-3xl p-8 text-white shadow-xl shadow-indian-navy/20">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight mb-2">Digital Document Vault</h1>
-          <p className="text-blue-100 text-lg max-w-xl">"Upload once. Apply anywhere. Your AI assistant securely uses these to pre-fill eligibility forms."</p>
+          <p className="text-blue-100 text-lg max-w-xl">Upload once. Apply anywhere. Your AI assistant securely uses these to pre-fill eligibility forms.</p>
         </div>
         <button className="whitespace-nowrap px-6 py-4 bg-white text-indian-navy hover:bg-blue-50 hover:scale-[1.02] active:scale-[0.98] rounded-2xl font-bold flex items-center gap-2 transition-all shadow-lg">
           <Plus className="w-5 h-5" />

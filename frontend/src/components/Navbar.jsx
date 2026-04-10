@@ -18,7 +18,7 @@ const Navbar = ({ onLoginClick, onGetStartedClick, onDemoLogin }) => {
   }, []);
 
   const menuItems = [
-    { name: 'Home', href: '/dashboard' },
+    { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
     { name: 'Schemes', href: '/schemes' },
   ];
@@ -35,9 +35,9 @@ const Navbar = ({ onLoginClick, onGetStartedClick, onDemoLogin }) => {
         isScrolled ? 'glass-card rounded-full py-2 shadow-2xl border-white/40 backdrop-blur-xl' : ''
       }`}>
         {/* Logo */}
-        <div className="flex items-center gap-3 cursor-pointer group">
+        <Link to="/" className="flex items-center gap-3 cursor-pointer group">
           <img src={logo} alt="Akashvaani AI" className="h-10 w-auto transition-transform group-hover:scale-110" />
-        </div>
+        </Link>
 
         {/* Menu */}
         <div className="hidden lg:flex items-center gap-10">

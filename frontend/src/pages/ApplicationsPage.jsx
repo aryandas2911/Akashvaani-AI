@@ -36,7 +36,7 @@ const ApplicationsPage = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-indian-navy tracking-tight">Your Applications</h1>
-          <p className="text-slate-500 mt-1">"Your applications are tracked here in real time."</p>
+          <p className="text-slate-500 mt-1">Your applications are tracked here in real time.</p>
         </div>
 
         <div className="relative w-full md:w-72">
