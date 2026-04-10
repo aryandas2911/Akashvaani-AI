@@ -4,42 +4,57 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import SchemeCard from '../components/SchemeCard';
 import SchemeFilters from '../components/SchemeFilters';
-import AgentTimeline from '../components/AgentTimeline';
 import { useSchemes } from '../hooks/useSchemes';
 import { useCitizen } from '../context/CitizenContext';
-
-const evaluateEligibilityRaw = (scheme, profile) => {
-  if (!profile) return false;
-  const rules = scheme.eligibility_rules;
-  if (!rules) return true;
-
-  let matches = true;
-  if (rules.income_max && profile.income > rules.income_max) matches = false;
-  if (rules.student !== undefined && rules.student && profile.occupation?.toLowerCase() !== 'student') matches = false;
-
-  return matches;
-};
+import { analyzeEligibility } from '../services/aiApi';
+import { Loader2 } from 'lucide-react';
 
 const SchemesPage = () => {
   const { pathname } = useLocation();
   const isDashboard = pathname.startsWith('/dashboard');
-  const { schemes, loading, error } = useSchemes();
+  const { schemes, loading: schemesLoading, error } = useSchemes();
   const [filteredSchemes, setFilteredSchemes] = useState([]);
+  const [isAiMatching, setIsAiMatching] = useState(false);
   
-  // Directly pull contextual live payloads dynamically instantiated
-  const { citizenData, clearCitizen } = useCitizen();
+  const { citizenData, clearCitizen, setCitizen } = useCitizen();
+  const currentProfile = citizenData?.profile || null;
+  const [filterKey, setFilterKey] = useState(0);
 
   useEffect(() => {
-    if (schemes.length > 0) {
-      setFilteredSchemes(schemes);
-    }
-  }, [schemes]);
+    const applyAiFilter = async () => {
+      if (currentProfile && schemes.length > 0) {
+        setIsAiMatching(true);
+        try {
+          // If we already have matches in context and they are non-demo, use them first
+          // But for consistency, we'll re-run matching to ensure it's fresh
+          const results = await analyzeEligibility(currentProfile);
+          
+          // Map backend results to full scheme objects
+          const matched = results.map(r => {
+            const fullScheme = schemes.find(s => s.name === r.scheme || s.title === r.scheme);
+            return {
+              ...fullScheme,
+              score: Math.round(r.score * 100),
+              benefit: r.benefit
+            };
+          }).filter(s => s.id); // Ensure we found the full scheme object
 
-  // Rely purely on dynamic citizen profiling mappings
-  const currentProfile = citizenData?.profile || null;
-  const eligibleSchemes = currentProfile ? filteredSchemes.filter(s => evaluateEligibilityRaw(s, currentProfile)) : [];
-  
-  const totalBenefitAmount = eligibleSchemes.reduce((acc, curr) => {
+          setFilteredSchemes(matched);
+        } catch (err) {
+          console.error("AI Filtering failed", err);
+          setFilteredSchemes(schemes);
+        } finally {
+          setIsAiMatching(false);
+        }
+      } else {
+        setFilteredSchemes(schemes);
+      }
+    };
+
+    applyAiFilter();
+  }, [schemes, currentProfile]);
+
+  const totalBenefitAmount = filteredSchemes.reduce((acc, curr) => {
       const numStr = String(curr.benefit).replace(/[^0-9]/g, '');
       const val = parseInt(numStr, 10);
       return isNaN(val) ? acc : acc + val;
@@ -54,10 +69,7 @@ const SchemesPage = () => {
         <div className={`fixed ${isDashboard ? 'top-20' : 'top-[88px]'} left-0 right-0 z-40 flex justify-center pointer-events-none animate-in slide-in-from-top-4 duration-500`}>
            <div className="bg-indian-green text-white px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 pointer-events-auto border border-indian-green/20">
              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>
-             Demo Citizen Loaded Successfully
-             <button onClick={clearCitizen} className="ml-4 pl-4 border-l border-white/20 text-white/80 hover:text-white transition-colors text-xs tracking-wider uppercase">
-                Clear Profile
-             </button>
+             {citizenData?.isDemo ? 'Demo Citizen Loaded Successfully' : 'Profile Reasoning Active'}
            </div>
         </div>
       )}
@@ -66,7 +78,7 @@ const SchemesPage = () => {
         <div className="w-full mx-auto space-y-8">
           
           {/* Reactive UI Analytics Block */}
-          {currentProfile ? (
+          {currentProfile && (
             <div className="bg-gradient-to-br from-indian-navy to-black p-8 md:p-12 rounded-[32px] shadow-2xl relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
               <div className="absolute -top-32 -right-32 w-96 h-96 bg-indian-saffron/20 rounded-full blur-[80px] pointer-events-none"></div>
               <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-indian-green/20 rounded-full blur-[80px] pointer-events-none"></div>
@@ -78,83 +90,76 @@ const SchemesPage = () => {
                       Akashvaani AI Engine
                     </p>
                     <h2 className="text-4xl md:text-5xl font-black tracking-tight border-b border-white/10 pb-4 mb-4 pt-2">
-                      {eligibleSchemes.length} schemes you qualify for
+                      {isAiMatching ? 'Analyzing Eligibility...' : `${filteredSchemes.length} schemes you qualify for`}
                     </h2>
                     <div className="flex gap-4">
                       <p className="text-white/70 bg-white/5 px-4 py-2 rounded-xl border border-white/10 text-sm"><span className="text-white font-bold block mb-1">Income</span>₹{currentProfile.income?.toLocaleString('en-IN')}</p>
-                      <p className="text-white/70 bg-white/5 px-4 py-2 rounded-xl border border-white/10 text-sm"><span className="text-white font-bold block mb-1">Status</span>{currentProfile.occupation || currentProfile.student ? 'Student' : 'Citizen'}</p>
+                      <p className="text-white/70 bg-white/5 px-4 py-2 rounded-xl border border-white/10 text-sm"><span className="text-white font-bold block mb-1">Location</span>{currentProfile.district}, {currentProfile.state}</p>
                     </div>
                   </div>
 
                   <div className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-[32px] text-center min-w-[320px] shadow-2xl">
                     <p className="text-white/80 font-bold uppercase tracking-widest text-xs mb-2">Total benefits available</p>
-                    <p className="text-5xl md:text-6xl font-black text-indian-green drop-shadow-md">₹{totalBenefitAmount.toLocaleString('en-IN')}</p>
-                    <p className="text-sm font-bold text-indian-green/80 mt-2 tracking-wider">ANNUAL ESTIMATE</p>
+                    <p className="text-5xl md:text-6xl font-black text-indian-green drop-shadow-md">
+                      {isAiMatching ? '...' : `₹${totalBenefitAmount.toLocaleString('en-IN')}`}
+                    </p>
+                    <p className="text-sm font-bold text-indian-green/80 mt-2 tracking-wider uppercase">matched for you</p>
                   </div>
               </div>
             </div>
-          ) : (
+          )}
+
+          {!currentProfile && (
             <div className="mb-12 text-center md:text-left flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-3xl border border-black/5 shadow-sm">
               <div>
                 <h1 className="text-4xl md:text-5xl font-black text-indian-navy tracking-tight mb-3">
                   Government Schemes
                 </h1>
                 <p className="text-lg text-indian-navy/70 max-w-2xl font-medium">
-                  Identify financial aid practically curated to empower Indian scaling workflows. Or launch the AI Demo directly via the Landing Page!
+                  Identify financial aid practically curated to empower Indian scaling workflows.
                 </p>
               </div>
             </div>
           )}
 
-          <div className="flex flex-col lg:flex-row gap-8">
-            <div className={`${currentProfile ? 'lg:w-3/4' : 'w-full'} space-y-8`}>
-              <SchemeFilters schemes={schemes} setFilteredSchemes={setFilteredSchemes} userProfile={currentProfile} />
+          <div className="space-y-8">
+            <SchemeFilters key={filterKey} schemes={schemes} setFilteredSchemes={setFilteredSchemes} userProfile={currentProfile} />
 
-              {loading && (
-                <div className="flex flex-col justify-center items-center py-32 space-y-6">
-                  <div className="relative">
-                     <div className="w-16 h-16 border-4 border-slate-100 rounded-full"></div>
-                     <div className="w-16 h-16 border-4 border-indian-saffron rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
+            {(schemesLoading || isAiMatching) && (
+              <div className="flex flex-col justify-center items-center py-32 space-y-6">
+                <div className="relative">
+                   <div className="w-16 h-16 border-4 border-slate-100 rounded-full"></div>
+                   <div className="w-16 h-16 border-4 border-indian-saffron rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
+                   <Loader2 className="w-8 h-8 text-indian-saffron absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                </div>
+                <p className="text-indian-navy/50 font-bold uppercase tracking-widest text-sm">AI Matching in Progress...</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 text-red-600 p-8 rounded-3xl border border-red-100 text-center font-bold my-12 shadow-sm flex flex-col items-center">
+                <svg className="w-10 h-10 mb-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Backend API Fetch Failed. ({error})
+              </div>
+            )}
+
+            {!schemesLoading && !isAiMatching && !error && filteredSchemes.length === 0 && (
+              <div className="text-center py-32 bg-white rounded-[32px] border border-black/5 shadow-sm mx-2 animate-in fade-in duration-500">
+                <h3 className="text-3xl font-black text-indian-navy mb-3 tracking-tight">No matching schemes</h3>
+                <p className="text-indian-navy/60 text-lg font-medium">Reset your filters or adjust your profile details.</p>
+              </div>
+            )}
+
+            {!schemesLoading && !isAiMatching && !error && filteredSchemes.length > 0 && (
+              <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr mt-8`}>
+                {filteredSchemes.map((scheme, idx) => (
+                  <div key={scheme.id || idx} className="animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both w-full" style={{ animationDelay: `${(idx % 6) * 75}ms` }}>
+                     <SchemeCard scheme={scheme} citizenProfile={currentProfile} />
                   </div>
-                  <p className="text-indian-navy/50 font-bold uppercase tracking-widest text-sm">Querying Knowledge Base...</p>
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 text-red-600 p-8 rounded-3xl border border-red-100 text-center font-bold my-12 shadow-sm flex flex-col items-center">
-                  <svg className="w-10 h-10 mb-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  Backend API Fetch Failed. ({error})
-                </div>
-              )}
-
-              {!loading && !error && filteredSchemes.length === 0 && (
-                <div className="text-center py-32 bg-white rounded-[32px] border border-black/5 shadow-sm mx-2 animate-in fade-in duration-500">
-                  <h3 className="text-3xl font-black text-indian-navy mb-3 tracking-tight">No matching schemes</h3>
-                  <p className="text-indian-navy/60 text-lg font-medium">Reset your filters or broaden your constraints.</p>
-                </div>
-              )}
-
-              {!loading && !error && filteredSchemes.length > 0 && (
-                <div className={`grid grid-cols-1 ${currentProfile ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'} gap-8 auto-rows-fr mt-8`}>
-                  {filteredSchemes.map((scheme) => (
-                    <div key={scheme.id} className="animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both w-full" style={{ animationDelay: `${(scheme.id % 5) * 75}ms` }}>
-                       <SchemeCard scheme={scheme} citizenProfile={currentProfile} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* AI Agent Sidebar only if active citizen triggered context flow */}
-            {currentProfile && (
-              <div className="lg:w-1/4">
-                <div className="sticky top-32">
-                    <AgentTimeline userId="demo_user" />
-                </div>
+                ))}
               </div>
             )}
           </div>
-
         </div>
       </main>
       {!isDashboard && <Footer />}

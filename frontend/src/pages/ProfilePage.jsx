@@ -14,13 +14,30 @@ const ProfileField = ({ icon: Icon, label, value, isEditing, onChange, name, typ
     <div className="flex-1">
       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</p>
       {isEditing ? (
-        <input 
-          type={type}
-          name={name}
-          value={value || ''}
-          onChange={onChange}
-          className="w-full mt-1 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-        />
+        type === 'select' ? (
+          <select 
+            name={name}
+            value={value || ''}
+            onChange={onChange}
+            className="w-full mt-1 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none"
+          >
+            {type === 'select' && label === 'Gender' ? (
+              <>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="non_binary">Non-Binary</option>
+              </>
+            ) : null}
+          </select>
+        ) : (
+          <input 
+            type={type}
+            name={name}
+            value={value || ''}
+            onChange={onChange}
+            className="w-full mt-1 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        )
       ) : (
         <p className="text-slate-700 font-semibold">{type === 'number' && name === 'income' ? `₹${Number(value || 0).toLocaleString()}` : (value || 'Not provided')}</p>
       )}
@@ -52,6 +69,14 @@ const ProfilePage = () => {
     );
   }
 
+  const normalizeGender = (gender) => {
+    if (!gender) return undefined;
+    const g = String(gender).toLowerCase().trim();
+    if (g === 'female') return 'female';
+    if (g === 'non_binary' || g === 'non-binary' || g === 'nonbinary') return 'non_binary';
+    return 'male'; // default
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: name === 'age' || name === 'income' ? Number(value) : value }));
@@ -67,19 +92,24 @@ const ProfilePage = () => {
         return;
       }
 
+      const sanitized = {
+        ...formData,
+        gender: normalizeGender(formData.gender),
+      };
+
       if (citizenData.isTemp) {
         // First time saving after AI extraction
         const response = await createUser({
-          ...formData,
-          age: parseInt(formData.age),
-          income: parseInt(String(formData.income).replace(/[^\d]/g, '')) || 0
+          ...sanitized,
+          age: parseInt(sanitized.age),
+          income: parseInt(String(sanitized.income).replace(/[^\d]/g, '')) || 0
         });
         setCitizen(response); // This removes isTemp
-        navigate('/dashboard');
+        navigate('/matching');
       } else {
         // Regular update
-        await updateUser(profile.id, formData);
-        updateCitizen(formData);
+        await updateUser(profile.id, sanitized);
+        updateCitizen(sanitized);
         setIsEditing(false);
       }
     } catch (err) {
@@ -173,6 +203,7 @@ const ProfilePage = () => {
         <ProfileField icon={GraduationCap} label="Education" name="education" value={formData.education} isEditing={isEditing} onChange={handleChange} />
         <ProfileField icon={DollarSign} label="Annual Income" name="income" type="number" value={formData.income} isEditing={isEditing} onChange={handleChange} />
         <ProfileField icon={MapPin} label="District" name="district" value={formData.district} isEditing={isEditing} onChange={handleChange} />
+        <ProfileField icon={User} label="Gender" name="gender" type="select" value={formData.gender} isEditing={isEditing} onChange={handleChange} />
       </div>
 
       {!isEditing && (

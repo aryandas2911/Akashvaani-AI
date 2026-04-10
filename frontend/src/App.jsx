@@ -9,6 +9,7 @@ import ProfilePage from './pages/ProfilePage';
 import ApplicationsPage from './pages/ApplicationsPage';
 import DocumentsPage from './pages/DocumentsPage';
 import VoiceAssistantPage from './pages/VoiceAssistantPage';
+import MatchingPage from './pages/MatchingPage';
 import { useCitizen, CitizenProvider } from './context/CitizenContext';
 import { Navigate } from 'react-router-dom';
 
@@ -21,6 +22,7 @@ const AppRoutes = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/schemes" element={<SchemesPage />} />
+      <Route path="/matching" element={<MatchingPage />} />
       <Route 
         path="/dashboard" 
         element={citizenData ? <DashboardLayout /> : <Navigate to="/" />}

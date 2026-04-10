@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { getUserById } from '../services/api';
 
 const CitizenContext = createContext();
 
@@ -12,6 +13,26 @@ export const CitizenProvider = ({ children }) => {
     const saved = localStorage.getItem('userDocuments');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Background refresh on load
+  useEffect(() => {
+    const refreshUser = async () => {
+      if (citizenData?.profile?.id && !citizenData.isDemo) {
+        try {
+          const freshUser = await getUserById(citizenData.profile.id);
+          if (freshUser) {
+            setCitizenData(prev => ({
+              ...prev,
+              profile: freshUser
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to refresh user from DB", err);
+        }
+      }
+    };
+    refreshUser();
+  }, []);
 
   useEffect(() => {
     if (citizenData) {

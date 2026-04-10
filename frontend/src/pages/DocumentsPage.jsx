@@ -2,15 +2,39 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, CheckCircle2, AlertCircle, File, Loader2, ExternalLink } from 'lucide-react';
 import { useCitizen } from '../context/CitizenContext';
-import { extractProfile } from '../services/aiApi';
+import { extractProfile, fetchDocumentUrl } from '../services/aiApi';
 
 const DocumentCard = ({ doc }) => {
   const { addDocument, citizenData, updateCitizen } = useCitizen();
   const [isUploading, setIsUploading] = useState(false);
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const fileInputRef = useRef(null);
 
   const isVerified = doc.status === 'verified';
   const isMissing = doc.status === 'missing';
+  
+  const handleView = async () => {
+    if (doc.url) {
+      window.open(doc.url, '_blank');
+      return;
+    }
+
+    // If no URL in context, fetch from storage
+    if (citizenData?.profile?.id) {
+       setIsFetchingUrl(true);
+       try {
+         const res = await fetchDocumentUrl(citizenData.profile.id, doc.name);
+         if (res.url) {
+           window.open(res.url, '_blank');
+         }
+       } catch (err) {
+         console.error(err);
+         alert("Could not fetch document from storage.");
+       } finally {
+         setIsFetchingUrl(false);
+       }
+    }
+  };
   
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -111,10 +135,11 @@ const DocumentCard = ({ doc }) => {
         </button>
       ) : (
          <button 
-           onClick={() => doc.url && window.open(doc.url, '_blank')}
-           className="w-full py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
+           onClick={handleView}
+           disabled={isFetchingUrl}
+           className="w-full py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors disabled:opacity-50"
          >
-          <ExternalLink className="w-4 h-4" />
+          {isFetchingUrl ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
           View Document
         </button>
       )}

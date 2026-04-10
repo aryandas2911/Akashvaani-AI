@@ -31,7 +31,8 @@ const OnboardingModal = ({ isOpen, onClose, onSuccess }) => {
     district: '',
     education: '',
     income: '',
-    age: ''
+    age: '',
+    gender: 'male'
   });
 
   const extractionSteps = [
@@ -75,11 +76,24 @@ const OnboardingModal = ({ isOpen, onClose, onSuccess }) => {
         email: extractedData.email || '',
         age: extractedData.age || '',
         occupation: extractedData.occupation || 'Farmer',
+        gender: extractedData.gender || 'Male',
         income: extractedData.annual_income || extractedData.income || '',
         state: extractedData.state || '',
         district: extractedData.district || '',
         education: extractedData.education || '',
-        id: extractedData.id // Might be present if user exists or generated
+        id: extractedData.id,
+        // Include any boolean document flags
+        aadhaar_card: extractedData.aadhaar_card,
+        pan_card: extractedData.pan_card,
+        passport: extractedData.passport,
+        voter_id: extractedData.voter_id,
+        driving_license: extractedData.driving_license,
+        ration_card: extractedData.ration_card,
+        birth_certificate: extractedData.birth_certificate,
+        death_certificate: extractedData.death_certificate,
+        marriage_certificate: extractedData.marriage_certificate,
+        caste_status_certificate: extractedData.caste_status_certificate,
+        income_certificate: extractedData.income_certificate
       };
 
       // Also save the document used for extraction to the vault
@@ -125,7 +139,8 @@ const OnboardingModal = ({ isOpen, onClose, onSuccess }) => {
       const userData = {
         ...formData,
         age: parseInt(formData.age),
-        income: parseInt(String(formData.income).replace(/[^\d]/g, '')) || 0
+        income: parseInt(String(formData.income).replace(/[^\d]/g, '')) || 0,
+        gender: formData.gender.toLowerCase().replace('-', '_')
       };
 
       const response = await createUser(userData);
@@ -136,7 +151,7 @@ const OnboardingModal = ({ isOpen, onClose, onSuccess }) => {
         setTimeout(() => {
           onSuccess();
           onClose();
-          navigate('/dashboard');
+          navigate('/matching');
         }, 1500);
       }
     } catch (err) {
@@ -273,6 +288,25 @@ const OnboardingModal = ({ isOpen, onClose, onSuccess }) => {
               value={formData.age}
               onChange={handleChange}
             />
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-indian-navy/60 ml-1">Gender</label>
+              <div className="relative group">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indian-saffron transition-colors" />
+                <select 
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white border border-black/5 focus:border-indian-saffron outline-none transition-all font-medium appearance-none text-sm"
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="non_binary">Non-Binary</option>
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+            </div>
             
             <div className="md:col-span-2 pt-4">
               <button 

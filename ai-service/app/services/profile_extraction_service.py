@@ -62,7 +62,9 @@ async def process_profile_extraction(file_bytes: bytes, filename: str, content_t
 
     # Add document verification flag if doc_type is provided and matched
     if doc_type and doc_type in DOC_TYPE_TO_COLUMN:
-        user_update_payload[DOC_TYPE_TO_COLUMN[doc_type]] = True
+        flag_name = DOC_TYPE_TO_COLUMN[doc_type]
+        user_update_payload[flag_name] = True
+        profile_dict[flag_name] = True # Ensure it's returned to frontend
 
     # Remove None values to avoid overwriting existing valid data with nulls
     user_update_payload = {k: v for k, v in user_update_payload.items() if v is not None}
@@ -79,7 +81,7 @@ async def process_profile_extraction(file_bytes: bytes, filename: str, content_t
         doc_record = {
             "user_id": user_id if user_id != "demo_user" else None,
             "file_url": file_url,
-            "document_type": "auto_fill_extraction",
+            "document_type": doc_type or "auto_fill_extraction",
             "extracted_data": profile_dict
         }
         await store_document_extraction(doc_record)

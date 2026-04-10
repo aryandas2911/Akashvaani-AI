@@ -26,6 +26,18 @@ async def store_document_extraction(document_data: dict):
     response = await client.table("documents").insert(document_data).execute()
     return response.data
 
+async def fetch_document_url_by_type(user_id: str, doc_type: str):
+    """Fetches the latest file URL for a specific document type from history."""
+    client = await get_supabase()
+    response = await client.table("documents") \
+        .select("file_url") \
+        .eq("user_id", user_id) \
+        .eq("document_type", doc_type) \
+        .order("created_at", desc=True) \
+        .limit(1) \
+        .execute()
+    return response.data[0]["file_url"] if response.data else None
+
 async def create_user(user_data: dict):
     """Creates a citizen user."""
     client = await get_supabase()

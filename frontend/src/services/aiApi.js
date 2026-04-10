@@ -37,3 +37,12 @@ export const extractProfile = (file, userId = null, docType = null) => {
 };
 
 export default aiApi;
+
+
+export const fetchDocumentUrl = (userId, docType) => {
+  return handleRequest(() => aiApi.get(`/ai/get-document-url?user_id=${userId}&doc_type=${encodeURIComponent(docType)}`));
+};
+
+export const analyzeEligibility = (profile) => {
+  return handleRequest(() => aiApi.post('/ai/analyze-eligibility', profile));
+};
