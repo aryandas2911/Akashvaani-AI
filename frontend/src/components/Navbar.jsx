@@ -89,12 +89,12 @@ const Navbar = ({ onLoginClick, onGetStartedClick, onDemoLogin }) => {
             </AnimatePresence>
           </div>
 
-          <Link 
-            to="/dashboard"
+          <button 
+            onClick={onDemoLogin}
             className="hidden xl:block text-sm font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 px-4 py-2 rounded-full transition-colors"
           >
             Try Demo User
-          </Link>
+          </button>
           
           <button 
             onClick={onLoginClick}

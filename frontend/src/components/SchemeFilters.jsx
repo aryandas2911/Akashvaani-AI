@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { documentStatus } from '../data/mockData';
 
-const SchemeFilters = ({ schemes, setFilteredSchemes }) => {
+const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile }) => {
   const [incomeRange, setIncomeRange] = useState('');
   const [maxBenefit, setMaxBenefit] = useState(250000);
   const [selectedDocs, setSelectedDocs] = useState([]);
@@ -11,14 +12,47 @@ const SchemeFilters = ({ schemes, setFilteredSchemes }) => {
   )).filter(Boolean).slice(0, 10);
 
   useEffect(() => {
+    if (userProfile) {
+      // 1. Auto-select the income bucket the user belongs to
+      const income = Number(userProfile.income);
+      if (income <= 100000) setIncomeRange('100000');
+      else if (income <= 250000) setIncomeRange('250000');
+      else if (income <= 500000) setIncomeRange('500000');
+      else if (income <= 800000) setIncomeRange('800000');
+
+      // 2. Set max benefit slider to maximum by default to explore all options
+      setMaxBenefit(250000);
+
+      // 3. Auto-select documents they have uploaded (verified)
+      const verifiedDocs = documentStatus
+        .filter(d => d.status === 'verified')
+        .map(d => d.name);
+      
+      // Combine with any profile specific docs if they exist
+      const profileDocs = userProfile.documents || [];
+      const allPossessed = Array.from(new Set([...verifiedDocs, ...profileDocs]));
+      
+      setSelectedDocs(allPossessed);
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
     let result = [...schemes];
 
-    // 1. Income parsing map
-    if (incomeRange) {
+    // 1. Income parsing & Eligibility map
+    if (userProfile && userProfile.income) {
+      const uIncome = Number(userProfile.income);
+      result = result.filter(scheme => {
+        const rules = scheme.eligibility_rules;
+        if (!rules || !rules.income_max) return true;
+        // User is eligible if their income is less than or equal to the scheme's max limit
+        return uIncome <= rules.income_max;
+      });
+    } else if (incomeRange) {
       const maxIncomeNum = parseInt(incomeRange);
       result = result.filter(scheme => {
         if (!scheme.eligibility_rules?.income_max) return true; 
-        return scheme.eligibility_rules.income_max <= maxIncomeNum;
+        return scheme.eligibility_rules.income_max >= maxIncomeNum;
       });
     }
 
@@ -38,8 +72,18 @@ const SchemeFilters = ({ schemes, setFilteredSchemes }) => {
       return val <= maxBenefit;
     });
 
+    // 4. Student status logic (if profile present)
+    if (userProfile) {
+      const isStudent = userProfile.occupation?.toLowerCase() === 'student' || userProfile.student === true;
+      result = result.filter(scheme => {
+        const rules = scheme.eligibility_rules;
+        if (!rules || rules.student === undefined) return true;
+        return rules.student === isStudent;
+      });
+    }
+
     setFilteredSchemes(result);
-  }, [schemes, incomeRange, selectedDocs, maxBenefit, setFilteredSchemes]);
+  }, [schemes, incomeRange, selectedDocs, maxBenefit, setFilteredSchemes, userProfile]);
 
   const toggleDoc = (doc) => {
     if (selectedDocs.includes(doc)) {
