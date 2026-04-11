@@ -59,18 +59,21 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
     return rNorm === 'all' || rNorm === gNorm;
   };
 
+  // Introduce a flag to allow bypassing profile-based implicit filtering when the user resets.
+  const [isReset, setIsReset] = useState(false);
+
   useEffect(() => {
     let result = [...schemes];
 
-    // 1. Income filter (auto from profile, fallback to dropdown selection)
-    const effectiveIncome = userProfile?.income ? Number(userProfile.income) : null;
-    if (effectiveIncome) {
-      result = result.filter(scheme => {
-        const rules = scheme.eligibility_rules;
-        if (!rules || !rules.income_max) return true;
-        return effectiveIncome <= rules.income_max;
-      });
-    } else if (incomeRange) {
+    // If reset, show all schemes and don't apply user profile implicit filters
+    if (isReset) {
+      setFilteredSchemes(result);
+      return;
+    }
+
+    // 1. Income filter 
+    // Always use the explicitly selected `incomeRange` (which was initialized by userProfile)
+    if (incomeRange) {
       const maxIncomeNum = parseInt(incomeRange);
       result = result.filter(scheme => {
         if (!scheme.eligibility_rules?.income_max) return true;
@@ -78,13 +81,12 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
       });
     }
 
-    // 2. Gender filter (handles string OR array in DB)
-    const effectiveGender = userProfile?.gender || genderFilter;
-    if (effectiveGender) {
+    // 2. Gender filter
+    if (genderFilter) {
       result = result.filter(scheme => {
         const rules = scheme.eligibility_rules;
         if (!rules || !rules.gender) return true;
-        return genderMatches(rules.gender, effectiveGender);
+        return genderMatches(rules.gender, genderFilter);
       });
     }
 
@@ -105,9 +107,6 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
     if (userProfile?.occupation) {
       const occ = userProfile.occupation.toLowerCase();
       const isStudent = occ === 'student';
-      const isFarmer = occ === 'farmer';
-      const isFisherman = occ === 'fisherman';
-      const isVendor = occ === 'vendor';
 
       result = result.filter(scheme => {
         const rules = scheme.eligibility_rules;
@@ -148,9 +147,10 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
     }
 
     setFilteredSchemes(result);
-  }, [schemes, incomeRange, selectedDocs, genderFilter, setFilteredSchemes, userProfile, search]);
+  }, [schemes, incomeRange, selectedDocs, genderFilter, setFilteredSchemes, userProfile, search, isReset]);
 
   const toggleDoc = (doc) => {
+    setIsReset(false);
     if (selectedDocs.includes(doc)) {
       setSelectedDocs(selectedDocs.filter(d => d !== doc));
     } else {
@@ -159,10 +159,10 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
   };
 
   const handleReset = () => {
+    setIsReset(true);
     setIncomeRange('');
     setSelectedDocs([]);
     setGenderFilter('');
-    setFilteredSchemes(schemes);
   };
 
   return (
@@ -175,7 +175,7 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
           <div className="relative">
             <select 
               value={incomeRange}
-              onChange={(e) => setIncomeRange(e.target.value)}
+              onChange={(e) => { setIncomeRange(e.target.value); setIsReset(false); }}
               className="w-full bg-slate-50 border border-black/5 rounded-2xl px-5 py-4 text-sm font-semibold focus:ring-4 focus:ring-indian-saffron/10 focus:border-indian-saffron outline-none transition-all appearance-none text-indian-navy cursor-pointer"
             >
               <option value="">No Strict Income Bounds</option>
@@ -196,7 +196,7 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
           <div className="relative">
             <select 
               value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value)}
+              onChange={(e) => { setGenderFilter(e.target.value); setIsReset(false); }}
               className="w-full bg-slate-50 border border-black/5 rounded-2xl px-5 py-4 text-sm font-semibold focus:ring-4 focus:ring-indian-saffron/10 focus:border-indian-saffron outline-none transition-all appearance-none text-indian-navy cursor-pointer"
             >
               <option value="">Show All Genders</option>

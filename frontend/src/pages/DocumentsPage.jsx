@@ -94,12 +94,14 @@ const DocumentCard = ({ doc }) => {
         updateCitizen(cleanUpdates);
       }
 
-      // 5. Explicitly write the doc boolean flag to DB as a guaranteed save
-      if (flagField && citizenData?.profile?.id) {
+      // 5. Explicitly write the doc boolean flag and user details to DB as a guaranteed save
+      if (citizenData?.profile?.id) {
         try {
-          await updateUser(citizenData.profile.id, { [flagField]: true });
+          const dbPayload = { ...cleanUpdates };
+          if (flagField) dbPayload[flagField] = true;
+          await updateUser(citizenData.profile.id, dbPayload);
         } catch (dbErr) {
-          console.error('DB flag update failed:', dbErr);
+          console.error('DB update failed:', dbErr);
         }
       }
 

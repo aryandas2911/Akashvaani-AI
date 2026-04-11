@@ -74,12 +74,12 @@ async def upload_document_to_storage(file_name: str, file_bytes: bytes, content_
         file_options={"content-type": content_type}
     )
     
-    # For supabase-py async client get_public_url returns a coroutine
-    public_url_res = await client.storage.from_("documents").get_public_url(file_name)
-    # get_public_url in some versions returns a dict/object or just the string. 
-    # Usually it returns the string directly if awaited in newer async versions, 
-    # but let's be safe.
-    public_url = public_url_res
+    # In supabase-py get_public_url is usually synchronous and returns the URL string
+    public_url_res = client.storage.from_("documents").get_public_url(file_name)
+    if hasattr(public_url_res, "__await__"):
+        public_url = await public_url_res
+    else:
+        public_url = public_url_res
     return public_url
 
 
