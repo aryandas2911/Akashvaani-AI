@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, CheckCircle2, AlertCircle, File, Loader2, ExternalLink } from 'lucide-react';
 import { useCitizen } from '../context/CitizenContext';
 import { extractProfile, fetchDocumentUrl } from '../services/aiApi';
-import { updateUser } from '../services/api';
+import { updateUser, getUserById } from '../services/api';
 
 const DocumentCard = ({ doc }) => {
   const { addDocument, citizenData, updateCitizen } = useCitizen();
@@ -98,6 +98,11 @@ const DocumentCard = ({ doc }) => {
       if (flagField && citizenData?.profile?.id) {
         try {
           await updateUser(citizenData.profile.id, { [flagField]: true });
+          // 6. Re-fetch the full user record from DB to sync context
+          const freshUser = await getUserById(citizenData.profile.id);
+          if (freshUser) {
+            updateCitizen(freshUser);
+          }
         } catch (dbErr) {
           console.error('DB flag update failed:', dbErr);
         }

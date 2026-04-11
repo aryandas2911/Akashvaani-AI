@@ -18,18 +18,24 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
   const [incomeRange, setIncomeRange] = useState('');
   const [selectedDocs, setSelectedDocs] = useState([]);
   const [genderFilter, setGenderFilter] = useState('');
-  
+  // Track whether the user has manually overridden a filter
+  const [incomeOverride, setIncomeOverride] = useState(false);
+  const [genderOverride, setGenderOverride] = useState(false);
+
   // Use canonical document list (matches DB boolean columns exactly)
   const allDocs = Object.keys(docTypeToField);
 
   useEffect(() => {
     if (userProfile) {
-      // 1. Auto-select the income bucket the user belongs to
-      const income = Number(userProfile.income);
-      if (income <= 100000) setIncomeRange('100000');
-      else if (income <= 250000) setIncomeRange('250000');
-      else if (income <= 500000) setIncomeRange('500000');
-      else if (income <= 800000) setIncomeRange('800000');
+      // 1. Auto-select the income bucket the user belongs to (only if user hasn't overridden)
+      if (!incomeOverride) {
+        const income = Number(userProfile.income);
+        if (income <= 100000) setIncomeRange('100000');
+        else if (income <= 250000) setIncomeRange('250000');
+        else if (income <= 500000) setIncomeRange('500000');
+        else if (income <= 800000) setIncomeRange('800000');
+        else setIncomeRange('');
+      }
 
       // 2. Auto-select documents they have verified in the database
       const possessedFromDb = Object.keys(docTypeToField).filter(typeName => {
@@ -38,12 +44,12 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
       });
       setSelectedDocs(possessedFromDb);
 
-      // 3. Auto-select gender filter
-      if (userProfile.gender) {
+      // 3. Auto-select gender filter (only if user hasn't overridden)
+      if (!genderOverride && userProfile.gender) {
         setGenderFilter(userProfile.gender);
       }
     }
-  }, [userProfile]);
+  }, [userProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper: check if userGender matches a scheme's gender rule (string OR array)
   const genderMatches = (ruleGender, userGender) => {
@@ -82,7 +88,7 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
       profileFiltered = profileFiltered.filter(scheme => {
         const rules = scheme.eligibility_rules;
         if (!rules || !rules.income_max) return true;
-        return effectiveIncome <= rules.income_max;
+        return profileIncome <= rules.income_max;
       });
     } else if (incomeRange) {
       const maxIncomeNum = parseInt(incomeRange);
@@ -92,8 +98,8 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
       });
     }
 
-    // Gender filter
-    const effectiveGender = userProfile?.gender || genderFilter;
+    // 2. Gender filter: user dropdown wins when overridden, else use profile gender
+    const effectiveGender = genderFilter || (!genderOverride ? userProfile?.gender : '');
     if (effectiveGender) {
       profileFiltered = profileFiltered.filter(scheme => {
         const rules = scheme.eligibility_rules;
@@ -154,7 +160,7 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
     }
 
     setFilteredSchemes(result);
-  }, [schemes, incomeRange, selectedDocs, genderFilter, setFilteredSchemes, userProfile, search]);
+  }, [schemes, incomeRange, selectedDocs, genderFilter, incomeOverride, genderOverride, setFilteredSchemes, userProfile, search]);
 
   const toggleDoc = (doc) => {
     if (selectedDocs.includes(doc)) {
@@ -164,11 +170,22 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
     }
   };
 
+  const handleIncomeChange = (e) => {
+    setIncomeOverride(true);
+    setIncomeRange(e.target.value);
+  };
+
+  const handleGenderChange = (e) => {
+    setGenderOverride(true);
+    setGenderFilter(e.target.value);
+  };
+
   const handleReset = () => {
+    setIncomeOverride(false);
+    setGenderOverride(false);
     setIncomeRange('');
-    setSelectedDocs([]);
     setGenderFilter('');
-    setFilteredSchemes(schemes);
+    setSelectedDocs([]);
   };
 
   return (
@@ -181,7 +198,7 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
           <div className="relative">
             <select 
               value={incomeRange}
-              onChange={(e) => setIncomeRange(e.target.value)}
+              onChange={handleIncomeChange}
               className="w-full bg-slate-50 border border-black/5 rounded-2xl px-5 py-4 text-sm font-semibold focus:ring-4 focus:ring-indian-saffron/10 focus:border-indian-saffron outline-none transition-all appearance-none text-indian-navy cursor-pointer"
             >
               <option value="">No Strict Income Bounds</option>
@@ -202,7 +219,7 @@ const SchemeFilters = ({ schemes, setFilteredSchemes, userProfile, search = '' }
           <div className="relative">
             <select 
               value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value)}
+              onChange={handleGenderChange}
               className="w-full bg-slate-50 border border-black/5 rounded-2xl px-5 py-4 text-sm font-semibold focus:ring-4 focus:ring-indian-saffron/10 focus:border-indian-saffron outline-none transition-all appearance-none text-indian-navy cursor-pointer"
             >
               <option value="">Show All Genders</option>
